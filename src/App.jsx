@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+const DEEPSEEK_API_KEY = "eb04b759-f2a0-4362-abbc-13039d47a222";
+
 const CATEGORIES = [
   { id: "small-business", label: "中小企业", icon: "🏪" },
   { id: "tech", label: "科技型企业", icon: "💻" },
@@ -68,17 +70,24 @@ export default function GrantFinder() {
       (budget ? "预算规模：" + budget + "\n" : "") +
       "\n请用 JSON 数组格式返回结果。每个对象包含以下字段：" +
       "{name: 政策名称, agency: 发布机构, type: 政策类型, level: 政策级别, amount_min: 最低补贴金额(元), amount_max: 最高补贴金额(元), deadline: 申请截止日期, eligibility: 申请条件, description: 政策描述, url: 官方链接, match_score: 匹配度(0-100), tips: 申请建议}" +
-      "\n只返回真实有效的政策，不要编造。";
+      "\n只返回 JSON，不要有其他文字说明。只返回真实有效的政策，不要编造。";
 
     try {
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      const resp = await fetch("https://api.deepseek.com/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + DEEPSEEK_API_KEY
+        },
+        body: JSON.stringify({ 
+          model: "deepseek-chat", 
+          max_tokens: 4000,
+          messages: [{ role: "user", content: prompt }] 
+        }),
       });
       if (!resp.ok) throw new Error("API 错误: " + resp.status);
       const data = await resp.json();
-      const text = data.content?.map(b => b.text || "").join("") || "";
+      const text = data.choices?.[0]?.message?.content || "";
       const clean = text.replace(/```json|```/g, "").trim();
       setResults(JSON.parse(clean));
     } catch (e) {
